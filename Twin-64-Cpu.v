@@ -576,3 +576,45 @@ module btb #(
     end
     
 endmodule
+
+
+module compare  
+
+
+// All comparisons are signed by default; unsigned comparisons can be implemented
+// by treating operands as unsigned integers or through a future \texttt{CMPU} 
+//variant if required.  
+// The \texttt{EV}/\texttt{OD} conditions allow efficient branching on bit~0, 
+//which is useful for address alignment tests, distinguishing even/odd indices, 
+// and loop unrolling.
+
+// Because all comparison and branch instructions share this common encoding and
+// logic, the branch unit requires only a single multiplexer and no dedicated 
+// condition register, simplifying both the datapath and verification.
+
+
+wire Z  = (result == 64'd0);  // Zero flag
+wire S  = result[63];         // Sign flag (for signed comparisons)
+wire B0 = result[0];          // Least significant bit (for EV/OD)
+
+wire cond_EQ =  Z;
+wire cond_LT =  S;
+wire cond_GT = (~S) & (~Z);
+wire cond_EV = ~B0;
+
+wire cond_NE = ~Z;
+wire cond_GE = ~S;
+wire cond_LE =  S | Z;
+wire cond_OD =  B0;
+
+assign branch_taken =
+    (cond == 3'b000) ? cond_EQ :
+    (cond == 3'b001) ? cond_LT :
+    (cond == 3'b010) ? cond_GT :
+    (cond == 3'b011) ? cond_EV :
+    (cond == 3'b100) ? cond_NE :
+    (cond == 3'b101) ? cond_GE :
+    (cond == 3'b110) ? cond_LE :
+                       cond_OD;
+
+endmodule
